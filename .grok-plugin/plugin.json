@@ -1,0 +1,23 @@
+{
+  "name": "clickflow",
+  "version": "1.0.0",
+  "description": "SEO and content-marketing automation for Grok Build via ClickFlow's hosted MCP server. Research keywords, plan and draft brand-aligned content, publish to your CMS, and measure results from Google Search Console and AI-assistant visibility.",
+  "author": {
+    "name": "Single Grain",
+    "url": "https://github.com/singlegrain"
+  },
+  "repository": "https://github.com/singlegrain/clickflow-grok-plugin",
+  "homepage": "https://www.clickflow.com",
+  "license": "MIT",
+  "keywords": [
+    "clickflow",
+    "seo",
+    "content-marketing",
+    "search-console",
+    "content-decay",
+    "aeo",
+    "answer-engine-optimization",
+    "cms-publishing",
+    "mcp"
+  ]
+}
