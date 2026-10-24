@@ -10,17 +10,61 @@ confident nonsense.
 
 | Question | Tools | Source |
 |---|---|---|
-| Do assistants mention and recommend us, and how do we rank against competitors? | `platform_get_visibility_*` | ClickFlow's own scans of ChatGPT / Perplexity |
+| Do sampled responses mention us, and how do we rank against competitors? | `platform_get_visibility_*` | ClickFlow collector samples; ChatGPT via Oxylabs, current Perplexity collector via Sonar API |
 | Is AI-referred traffic actually arriving on the site? | `platform_get_aeo_data` | Google Analytics 4 |
 
 Read `clickflow-seo` first for org selection. Everything here is read-only, so orient freely.
 
 ## Check the scan first
 
-`platform_get_visibility_status()` returns the latest scan's state — `running`, `completed`, or
+`platform_get_visibility_status(history_limit=10)` returns the latest scan's state — `running`, `completed`, or
 `failed` — with a timestamp. Call it before reporting numbers. Reporting a stale or partial scan as
 current is the main way this goes wrong. If it's `running`, say so and give the timestamp of the
 data you're describing; if `failed`, report that rather than presenting whatever's cached as fresh.
+
+The latest attempted scan and the latest completed rankings can be different runs. Match the
+status `_id` to rankings `runId` before applying completeness metadata to rankings. Always report
+the rankings' own `completedAt`, even when a newer scan is running or failed. If they do not match,
+the older rankings' completeness is unknown unless its exact run appears in the returned history.
+
+Inspect `analysisFailures`, `scrapeCoverage`, `resultsExpected`, and `resultsStored` when present.
+The storage counts describe prepared result documents and acknowledged writes, not all configured
+prompts. A write timeout can leave unacknowledged rows: do not claim these are an exact missing-row
+count. `scrapeCoverage` is the worst platform's coverage, not a per-platform breakdown. Missing
+fields on older deployments or runs mean **unknown**, never zero failures or full coverage.
+A completed run alone does not certify a complete sample.
+
+If the server tool schema does not yet support `history_limit`, call the tool without it and
+report history/provenance as unavailable. Do not invent a successful history response.
+
+The optional `history_limit` (1–50; 0 means latest only) returns newest-first run records from
+one organization-scoped snapshot, including failed/running attempts. Each record has its own ID,
+status, dates, available counts and `measurementSources`. Never treat a failed attempt as a
+completed comparison. Rankings' `previousRunId`/`previousCompletedAt` identify the actual baseline;
+use these IDs, not adjacent entries in mixed-status history. No previous run means no measured change.
+
+`measurementSources` groups acknowledged documents by platform/source/model. `resultCount` is the
+group size; `observedCount` is how many have a response-received timestamp, with
+`firstObservedAt`/`lastObservedAt` bounding those observations. These are collector receipt times,
+not search-engine crawl dates or database write times. A missing source/model remains unknown.
+A changed source/model, sample coverage, topic set, or measurement window can invalidate a comparison;
+even matching source/model does not prove identical methodology. Historical provenance is not backfilled.
+
+Perplexity's Sonar API is not the consumer search UI. The collector changed in October 2026;
+do not infer a historical run's provider from its platform label or the merge date. If persisted
+provider/model provenance is absent, mark it unknown and flag the possible methodology break
+before comparing periods. Do not describe API answers as what a user saw in the consumer UI.
+
+For a tracker readout, return the selected organization/site, run ID, observation date, source,
+coverage/unknowns, and comparison window. Use the same organization and run IDs when comparing
+ChatGPT MCP with this Grok wrapper. A matching endpoint configuration is not proof of customer
+authentication or cross-client agreement.
+
+Collection belongs to the backend. Do not keep a chat session polling to collect measurements.
+Source code schedules visibility collection Mon/Wed/Fri at 06:00 UTC for eligible opted-in orgs;
+report that as configured cadence, not a guaranteed next measurement. Verify runtime eligibility
+and scheduler health before giving a next-run promise. Changes between observations are descriptive,
+not evidence that a content edit caused the movement.
 
 ## The three visibility reads
 
@@ -73,6 +117,10 @@ plainly — visibility data is not a substitute for traffic data, and you cannot
 other.
 
 ## Turning findings into work
+
+Tracking is the default. Report the evidence and proposed next measurement first. Only use the
+content actions below when the user requests content work; a tracking request does not authorize
+generation, publishing, or paid collection.
 
 Visibility findings are only worth producing if they change what gets written. The move is almost
 always one of:
